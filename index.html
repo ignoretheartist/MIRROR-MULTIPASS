@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<!--
+  MIRROR multipass card inspired by the uploaded Aetherspawn Series artwork.
+  
+  This page constructs a futuristic ID card with a metallic frame and a glass
+  viewport.  The viewport is semi‑transparent, allowing the page background
+  to show through, and it contains key MIRROR token statistics.  A dynamic
+  script fetches circulating supply and price data from SpaceScan and
+  Coingecko, then computes the burned supply and fiat conversion.
+
+  Stats displayed:
+    • Launch date (hardcoded)
+    • Circulating supply
+    • Burned supply (total – circulating)
+    • Price in XCH with USD equivalent in parentheses
+
+  Replace YOUR_TWITTER_BEARER_TOKEN if you choose to add social feed
+  functionality later.  This example does not fetch tweets to keep the card
+  lightweight.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIRROR Multipass Card</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+    :root {
+      --frame-bg: linear-gradient(145deg, #dcdcdc, #a8a8a8, #8d8d8d, #c2c2c2);
+      --frame-border: #676a6c;
+      --accent-color: #ff9500;
+      --glass-tint: rgba(34, 139, 34, 0.15);
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #101010;
+      font-family: 'Orbitron', sans-serif;
+      color: #e0e0e0;
+    }
+    /* Card container */
+    #card {
+      /* Increase the overall size of the card to give stats room to breathe */
+      width: 480px;
+      height: 650px;
+      background: var(--frame-bg);
+      border: 2px solid var(--frame-border);
+      border-radius: 16px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Accents like orange pads on corners */
+    .accent {
+      width: 30px;
+      height: 30px;
+      background: var(--accent-color);
+      border-radius: 6px;
+      position: absolute;
+      /* Ensure accents render below the header content */
+      z-index: 1;
+    }
+    .accent.tl { top: 10px; left: 10px; }
+    .accent.br { bottom: 10px; right: 10px; }
+    /* Header bar */
+    #header {
+      /* Slightly taller header for a more balanced layout on the larger card */
+      height: 90px;
+      border-bottom: 1px solid rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      /* Provide extra left padding so the MIRROR label clears the top‑left accent */
+      padding: 10px 60px 10px 60px;
+      /* do not use space-between here; the title pushes the icons to the right */
+      /* Ensure header content appears above the corner accent */
+      position: relative;
+      z-index: 2;
+    }
+    /* Title text pushes the remaining elements to the right */
+    #header h1 {
+      font-size: 1.6rem;
+      margin: 0;
+      color: #222;
+      margin-right: auto;
+      /* Shift the title to the right so it doesn't overlap the top‑left accent */
+      margin-left: 80px;
+    }
+    /* Container for the MIRROR logo and embedded Æ badge */
+    .logo-container {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      margin-right: 16px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-container img.frame-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+    /* Center the Æ letter on top of the frame image */
+    .logo-container .ae-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: #333;
+      text-shadow: 0 0 2px rgba(255,255,255,0.6);
+    }
+    /* Glass viewport */
+    #viewport {
+      flex: 1;
+      margin: 20px;
+      border: 3px solid #444;
+      border-radius: 12px;
+      background: var(--glass-tint);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+    /* Stats list inside viewport */
+    #stats {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #stats div {
+      /* Increase font size for better readability on a larger card */
+      font-size: 1rem;
+      color: #e7fff7;
+      text-shadow: 0 0 4px rgba(0,255,255,0.8);
+      display: flex;
+      justify-content: space-between;
+    }
+    #stats div span:nth-child(1) {
+      color: rgba(200, 255, 215, 0.8);
+    }
+    /* Bottom panel for card label */
+    #footer {
+      height: 70px;
+      background: linear-gradient(90deg, #4f5152, #656667, #4f5152);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-top: 1px solid rgba(0,0,0,0.3);
+    }
+    #footer h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #c0c8d0;
+    }
+    #footer p {
+      margin: 2px 0 0;
+      font-size: 0.7rem;
+      color: #9aa2ac;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="card">
+    <!-- corner accents -->
+    <div class="accent tl"></div>
+    <div class="accent br"></div>
+    <!-- header with title, mirror logo on the opposite side, and Æ badge -->
+    <div id="header">
+      <h1>MIRROR</h1>
+      <!-- Combine the Mirror logo and the Æ badge into a single container -->
+      <div class="logo-container">
+        <!-- Use the uploaded gold frame mirror image as the background and overlay the Æ character -->
+        <img src="0957ed359f099d5846c2c74c42e7c2eb9608b58c32e320e144840e3efab0b747.webp" class="frame-image" alt="Mirror frame" />
+        <div class="ae-overlay">Æ</div>
+      </div>
+    </div>
+    <!-- viewport shows data -->
+    <div id="viewport">
+      <div id="stats">
+        <div><span>Launch (UTC)</span><span id="launchDate">--</span></div>
+        <div><span>Days Deployed</span><span id="days">--</span></div>
+        <div><span>Holders</span><span id="holders">--</span></div>
+        <div><span>Total Supply</span><span id="total">--</span></div>
+        <div><span>Circulating</span><span id="circ">--</span></div>
+        <div><span>Burned</span><span id="burned">--</span></div>
+        <div><span>Price (XCH)</span><span id="price">--</span></div>
+        <!-- current date display -->
+        <div><span>Today</span><span id="currentDate">--</span></div>
+      </div>
+      <!-- world clocks container -->
+      <div id="worldClocks" style="margin-top: 12px; font-size: 0.7rem; color: #b8f5e8; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; width: 100%;"></div>
+    </div>
+    <!-- footer -->
+    <div id="footer">
+      <h2>Multipass</h2>
+      <!-- Removed descriptive line per user request -->
+      <p></p>
+    </div>
+  </div>
+
+  <script>
+    // Token id for MIRROR
+    const TOKEN_ID = '0957ed359f099d5846c2c74c42e7c2eb9608b58c32e320e144840e3efab0b747';
+    // Precise launch date and time in UTC for the MIRROR token on Chia network.
+    // According to SpaceScan, the token was created on 2025‑03‑12 at 11:19:31 UTC.
+    const LAUNCH_DATE = '2025-03-12T11:19:31Z';
+
+    // Populate static date
+    // Show both date and time for the launch event.  We use toLocaleString so the date/time
+    // renders in the user's locale but reflects the UTC moment stored in LAUNCH_DATE.
+    const launchDateObj = new Date(LAUNCH_DATE);
+    document.getElementById('launchDate').textContent = launchDateObj.toLocaleString(undefined, {
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+      timeZone: 'UTC'
+    }) + ' UTC';
+
+    // Compute and populate days deployed
+    const daysDiff = Math.floor((Date.now() - new Date(LAUNCH_DATE).getTime()) / (1000 * 60 * 60 * 24));
+    document.getElementById('days').textContent = daysDiff.toString();
+
+    // Populate current date (today) in locale format
+    function updateCurrentDate() {
+      const now = new Date();
+      // Format: Month/Day/Year
+      document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric' });
+    }
+    updateCurrentDate();
+
+    // Setup world clocks
+    const timeZones = [
+      { label: 'UTC', zone: 'UTC' },
+      { label: 'New York', zone: 'America/New_York' },
+      { label: 'Chicago', zone: 'America/Chicago' },
+      { label: 'Los Angeles', zone: 'America/Los_Angeles' },
+      { label: 'London', zone: 'Europe/London' },
+      { label: 'Paris', zone: 'Europe/Paris' },
+      { label: 'Dubai', zone: 'Asia/Dubai' },
+      { label: 'Mumbai', zone: 'Asia/Kolkata' },
+      { label: 'Beijing', zone: 'Asia/Shanghai' },
+      { label: 'Tokyo', zone: 'Asia/Tokyo' },
+      { label: 'Sydney', zone: 'Australia/Sydney' }
+    ];
+    const worldClocksContainer = document.getElementById('worldClocks');
+
+    // create elements for each timezone
+    const clockElements = {};
+    timeZones.forEach(tz => {
+      const span = document.createElement('div');
+      span.style.display = 'flex';
+      span.style.flexDirection = 'column';
+      span.style.alignItems = 'center';
+      span.style.padding = '2px 4px';
+      span.style.background = 'rgba(0,0,0,0.25)';
+      span.style.borderRadius = '4px';
+      // Let CSS grid control the width; each tile will expand equally.
+      span.style.textAlign = 'center';
+      span.style.width = '100%';
+      span.innerHTML = `<strong style="font-size:0.65rem; color:#8af8e5;">${tz.label}</strong><span id="clock-${tz.label.replace(/\s+/g,'')}">--</span>`;
+      worldClocksContainer.appendChild(span);
+      clockElements[tz.label] = span.querySelector('span');
+    });
+    function updateWorldClocks() {
+      const now = new Date();
+      timeZones.forEach(tz => {
+        const timeString = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: tz.zone });
+        clockElements[tz.label].textContent = timeString;
+      });
+    }
+    updateWorldClocks();
+    setInterval(() => {
+      updateCurrentDate();
+      updateWorldClocks();
+    }, 1000);
+
+    async function fetchTokenData() {
+      try {
+        /*
+         * Query SpaceScan for MIRROR token data.  The endpoints used are:
+         *  - /token/circulating-supply/{token_id}  -> { circulating_supply }
+         *  - /token/total-supply/{token_id}        -> { total_supply }
+         *  - /token/price/{token_id}?currency=XCH  -> { price: { xch: "..." } }
+         *  - /stats/price?currency=usd             -> { price: <xch_price_in_usd> }
+         *  - /token/holders/{token_id}             -> { tokens: [ { address, amount }, ... ] }
+         */
+        // Fetch data directly from SpaceScan.  When deploying this HTML on a server
+        // (for example as an NFT asset), the requests will be made from https origins
+        // and will not be subject to file:// CORS restrictions.  If you open this
+        // file locally without hosting it, the fetches may fail due to CORS.  To
+        // test locally, consider hosting the file with a simple HTTP server.
+        const [circRes, totalRes, priceRes, xchUsdRes, holdersRes] = await Promise.all([
+          fetch(`https://api.spacescan.io/token/circulating-supply/${TOKEN_ID}`),
+          fetch(`https://api.spacescan.io/token/total-supply/${TOKEN_ID}`),
+          fetch(`https://api.spacescan.io/token/price/${TOKEN_ID}?currency=XCH`),
+          fetch(`https://api.spacescan.io/stats/price?currency=usd`),
+          fetch(`https://api.spacescan.io/token/holders/${TOKEN_ID}`)
+        ]);
+        const circData = await circRes.json();
+        const totalData = await totalRes.json();
+        const priceData = await priceRes.json();
+        const xchUsdData = await xchUsdRes.json();
+        const holdersData = await holdersRes.json();
+        // Extract numbers.  SpaceScan returns strings sometimes.
+        const circVal = parseFloat(circData.circulating_supply);
+        const totalVal = parseFloat(totalData.total_supply);
+        // Burned tokens are simply the difference between total and circulating.
+        const burnedVal = (totalVal && circVal) ? (totalVal - circVal) : 0;
+        // MIRROR price in XCH is nested under price.xch
+        const mirrorPriceXch = parseFloat(priceData.price?.xch || 0);
+        // XCH to USD conversion
+        const xchToUsd = parseFloat(xchUsdData.price || 0);
+        const priceUsd = mirrorPriceXch * xchToUsd;
+        // Holder count: number of token holder entries in list
+        const holdersVal = Array.isArray(holdersData.tokens) ? holdersData.tokens.length : 0;
+        // Populate fields
+        document.getElementById('holders').textContent = holdersVal ? holdersVal.toLocaleString() : '--';
+        document.getElementById('total').textContent = totalVal ? totalVal.toLocaleString() : '--';
+        document.getElementById('circ').textContent = circVal ? circVal.toLocaleString() : '--';
+        document.getElementById('burned').textContent = burnedVal ? burnedVal.toLocaleString() : '--';
+        document.getElementById('price').textContent = mirrorPriceXch ? `${mirrorPriceXch.toFixed(8)} XCH ($${priceUsd.toFixed(4)})` : '--';
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchTokenData();
+    // Refresh every 10 minutes
+    setInterval(fetchTokenData, 10 * 60 * 1000);
+  </script>
+</body>
+</html>
