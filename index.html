@@ -63,8 +63,6 @@
       background: var(--accent-color);
       border-radius: 6px;
       position: absolute;
-      /* Ensure accents render below the header content */
-      z-index: 1;
     }
     .accent.tl { top: 10px; left: 10px; }
     .accent.br { bottom: 10px; right: 10px; }
@@ -75,12 +73,8 @@
       border-bottom: 1px solid rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
-      /* Provide extra left padding so the MIRROR label clears the top‑left accent */
-      padding: 10px 60px 10px 60px;
+      padding: 10px 20px;
       /* do not use space-between here; the title pushes the icons to the right */
-      /* Ensure header content appears above the corner accent */
-      position: relative;
-      z-index: 2;
     }
     /* Title text pushes the remaining elements to the right */
     #header h1 {
@@ -88,38 +82,35 @@
       margin: 0;
       color: #222;
       margin-right: auto;
-      /* Shift the title to the right so it doesn't overlap the top‑left accent */
-      margin-left: 80px;
     }
-    /* Container for the MIRROR logo and embedded Æ badge */
-    .logo-container {
-      position: relative;
+    /* Mirror logo placed to the right of the title */
+    #header img.mirror-logo {
+      /* Enlarge the mirror logo to match the new header height */
       width: 60px;
       height: 60px;
       margin-right: 16px;
+    }
+
+    /* Æ badge styling */
+    #aeBadge {
+      /* Larger badge to harmonize with the new frame size */
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      overflow: hidden;
+      /* A chrome-like gradient with a hint of teal to match the viewport */
+      background: linear-gradient(135deg, #e1e4e6, #c7c9cb, #f9f9fa);
+      color: #333;
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-    .logo-container img.frame-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
-      display: block;
-    }
-    /* Center the Æ letter on top of the frame image */
-    .logo-container .ae-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: bold;
-      color: #333;
-      text-shadow: 0 0 2px rgba(255,255,255,0.6);
+      /* Inner border to create a recessed look */
+      border: 2px solid #a2a4a8;
+      box-shadow:
+        0 0 0 4px rgba(193, 137, 69, 0.6), /* outer golden ring */
+        inset 0 2px 3px rgba(255,255,255,0.8),
+        inset 0 -2px 3px rgba(0,0,0,0.3);
     }
     /* Glass viewport */
     #viewport {
@@ -185,12 +176,8 @@
     <!-- header with title, mirror logo on the opposite side, and Æ badge -->
     <div id="header">
       <h1>MIRROR</h1>
-      <!-- Combine the Mirror logo and the Æ badge into a single container -->
-      <div class="logo-container">
-        <!-- Use the uploaded gold frame mirror image as the background and overlay the Æ character -->
-        <img src="0957ed359f099d5846c2c74c42e7c2eb9608b58c32e320e144840e3efab0b747.webp" class="frame-image" alt="Mirror frame" />
-        <div class="ae-overlay">Æ</div>
-      </div>
+      <img src="https://icons.dexie.space/0957ed359f099d5846c2c74c42e7c2eb9608b58c32e320e144840e3efab0b747.webp" class="mirror-logo" alt="Mirror logo" />
+      <div id="aeBadge">Æ</div>
     </div>
     <!-- viewport shows data -->
     <div id="viewport">
@@ -206,7 +193,7 @@
         <div><span>Today</span><span id="currentDate">--</span></div>
       </div>
       <!-- world clocks container -->
-      <div id="worldClocks" style="margin-top: 12px; font-size: 0.7rem; color: #b8f5e8; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; width: 100%;"></div>
+      <div id="worldClocks" style="margin-top: 12px; font-size: 0.7rem; color: #b8f5e8; display: flex; flex-wrap: wrap; gap: 6px;"></div>
     </div>
     <!-- footer -->
     <div id="footer">
@@ -271,9 +258,9 @@
       span.style.padding = '2px 4px';
       span.style.background = 'rgba(0,0,0,0.25)';
       span.style.borderRadius = '4px';
-      // Let CSS grid control the width; each tile will expand equally.
+      // Fix the width of each timezone box so the layout does not jitter when seconds update
+      span.style.minWidth = '80px';
       span.style.textAlign = 'center';
-      span.style.width = '100%';
       span.innerHTML = `<strong style="font-size:0.65rem; color:#8af8e5;">${tz.label}</strong><span id="clock-${tz.label.replace(/\s+/g,'')}">--</span>`;
       worldClocksContainer.appendChild(span);
       clockElements[tz.label] = span.querySelector('span');
